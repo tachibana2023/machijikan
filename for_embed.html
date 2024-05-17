@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        /*
+    ここの中はCSSでサイト内のスタイル(見え方)を設定します。
+    調べたら色々出てきて複雑なこともできますが今は最低限実装になっています。
+    基本変更しなくて大丈夫ですがお好みで変更してみてくださいね！
+    */
+
+        body {
+            /*背景色*/
+            background-color: rgb(239, 239, 239);
+        }
+
+        /*表の設定*/
+        table,
+        th,
+        td {
+            /*セル内の上下左右余白*/
+            padding: 5px 5px 5px 5px;
+            font-size: 1em;
+            /*真ん中による*/
+            text-align: center;
+            /*枠線・ 太さ1px・実践・黒色指定*/
+            border: 1px solid #000000;
+            /*枠同士を重ねる*/
+            border-collapse: collapse;
+            /* スクロール可能に*/
+            overflow-x: scroll;
+            /*折り返し禁止*/
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+    <br>
+    <div>status : <span class="status">読み込み中...</span></div>
+    <br>
+    <div class="out_program">
+        <table class="ta program" id="apiTable">
+            <tr>
+                <th>クラス</th>
+                <th>タイトル</th>
+                <th>場所</th>
+                <th>ジャンル</th>
+                <th>待ち時間</th>
+            </tr>
+            <tr>
+                <td>1-A</td>
+                <td>SUPER MARIO BROS. 1-A</td>
+                <td>本302</td>
+                <td>体験</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1-B</td>
+                <td>1-Baccarat</td>
+                <td>本207</td>
+                <td>体験</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1-C</td>
+                <td>Monsters in-C</td>
+                <td>本202</td>
+                <td>ｱﾄﾗｸｼｮﾝ</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1-D</td>
+                <td>Death Hotel</td>
+                <td>本104</td>
+                <td>お化け</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1-E</td>
+                <td>ハリー・ポッターと四寮の謎</td>
+                <td>本102</td>
+                <td>ｱﾄﾗｸｼｮﾝ</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1-F</td>
+                <td>ミスターIを越えろVS生田</td>
+                <td>本107</td>
+                <td>ｱﾄﾗｸｼｮﾝ</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1-G</td>
+                <td>廃園になったユウジランド</td>
+                <td>本305</td>
+                <td>ｱﾄﾗｸｼｮﾝ</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1-H</td>
+                <td>としまえん</td>
+                <td>本306</td>
+                <td>体験</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1-I</td>
+                <td>旧ﾘｽｰｶ社会主義共和国連邦</td>
+                <td>本209</td>
+                <td>お化け</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-A</td>
+                <td>訳あり！！沼田不動産</td>
+                <td>本301</td>
+                <td>お化け</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-B</td>
+                <td>推さないメイド エリーナ</td>
+                <td>本201</td>
+                <td>食品</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-C</td>
+                <td>ばぶばぶ ぱにっく</td>
+                <td>本205</td>
+                <td>お化け</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-D</td>
+                <td>めいどーなつかふぇ</td>
+                <td>本208</td>
+                <td>食品</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-E</td>
+                <td>NEGI!</td>
+                <td>本106</td>
+                <td>ｱﾄﾗｸｼｮﾝ</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-F</td>
+                <td>まさを庵</td>
+                <td>本101</td>
+                <td>食品</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-G</td>
+                <td>ルイ〜Gマンション</td>
+                <td>本206</td>
+                <td>ｱﾄﾗｸｼｮﾝ</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-H</td>
+                <td>甘味処SUGI</td>
+                <td>本108</td>
+                <td>食品</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>2-I</td>
+                <td>メイドインアイズ</td>
+                <td>本308</td>
+                <td>食品</td>
+                <td></td>
+            </tr>
+        </table>
+        <br>
+        <br>
+        <div class="reset">リセット用txt</div>
+        <br>
+
+    </div>
+</body>
+
+<script>
+    // ここはJSで書かれています。
+    // 下のURLのみ変更してそれ以外はいじらないでね〜〜
+    let url = "https://script.google.com/macros/s/AKfycbyovXOouXEk0pDSOdrSFveIBKIPDxekUw3sQVTrsjJ7kOthVWkhyZYg3QFpS54zs9WO/exec";
+
+    // <------以下変更禁止------>>
+    let table = document.getElementById("apiTable");
+    window.onload = function () {
+        checkLastVisit();
+    };
+
+    function main_function() {
+        try {
+            ch_info(url);
+        } catch (e) {
+            oh_my_god(e)
+        }
+    }
+
+    const element = document.querySelector('.reset');
+    element.addEventListener('click', () => {
+        localStorage.removeItem('lastVisit');
+        console.log("リセットされました")
+    });
+
+    // 前回アクセス時間チェック-最初に呼ばれる
+    function checkLastVisit() {
+        const lastVisit = localStorage.getItem('lastVisit');
+        const currentTime = new Date().getTime();
+        // 初回アクセス or 1分空いた場合
+        if (!lastVisit || currentTime - lastVisit > 60000) {
+            main_function();
+            localStorage.setItem('lastVisit', currentTime);
+        } else {
+            let table = document.getElementById("apiTable");
+            let results2 = localStorage.getItem('lastResponse');
+            results2 = results2.split(",");
+            let rows = table.rows;
+            for (let i = 0; i < results2.length; i++) {
+                let lastCell = rows[i + 1].cells[4];
+                lastCell.textContent = results2[i] + "分";
+            }
+            success()
+        }
+    }
+
+    //取得-変更
+    function ch_info(url) {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                let apiResponse = data;
+                let results = apiResponse.message.result;
+                localStorage.setItem('lastResponse', results);
+                let rows = table.rows;
+                for (let i = 0; i < results.length; i++) {
+                    let lastCell = rows[i + 1].cells[4];
+                    lastCell.textContent = results[i] + "分";
+                }
+                success()
+            })
+            .catch(e => {
+                oh_my_god(e)
+            });
+    }
+
+    function success() {
+        let status_viewer = document.querySelector('.status')
+        status_viewer.textContent = "読み込み完了"
+    }
+
+    function oh_my_god(e) {
+        console.log(e)
+        let status_viewer = document.querySelector('.status')
+        status_viewer.textContent = "エラー発生"
+    }
+</script>
+
+</html>
