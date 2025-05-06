@@ -19,29 +19,42 @@ function doGet(e) {
 
   try{
     //第一段階
-    var [element,result] = getDataFromSheet();
+    var [element,result,diff_arr] = getDataFromSheet();
   }catch(e){
     try{
       //第二段階
-      var [element,result] = getDataFromForm();
+      var [element,result,diff_arr] = getDataFromForm();
     }catch(e){
       console.log('シート取得関数にエラー・回数オーバーか？：' + e.message);
       value = "ERROR";
     }
   }
 
-  if(result){
-    let [sortedArrayA, sortedArrayB] = sortArrays(element,result);
-    value = {"element":sortedArrayA,"result":sortedArrayB}
+  if (value !== "ERROR") { 
+    const sortedArraysResult = sortArrays(element, result, diff_arr);
+
+    if (sortedArraysResult && sortedArraysResult.length === 3 &&
+        Array.isArray(sortedArraysResult[0]) && // 各要素が配列であることも確認
+        Array.isArray(sortedArraysResult[1]) &&
+        Array.isArray(sortedArraysResult[2])) {
+      value = {
+        "element": sortedArraysResult[0],
+        "result": sortedArraysResult[1],
+        "diff_arr": sortedArraysResult[2] 
+      };
+    } else {
+      console.log('ソート処理でエラー、または期待される配列構造ではありません。');
+      value = "ERROR_SORTING";
+    }
   }
 
-  var result = {
+  var result_json = {
     message: value
   }
 
   var out = ContentService.createTextOutput();
   out.setMimeType(ContentService.MimeType.JSON);
-  out.setContent(JSON.stringify(result));
+  out.setContent(JSON.stringify(result_json));
 
   return out;
 }
@@ -60,10 +73,11 @@ function getDataFromSheet() {
   var element = [];
   var result = [];
   var diff_arr =[];
+  var howManyLoop;
 
   for(let i=1; i < allDatas.length; i++){
     var div_Data = allDatas[allDatas.length-i];
-    var cleer = div_Data;
+    var cleer = div_Data.filter(Boolean);
     //element(既出のもの)の情報ではない (かつ) 情報がundefinedではない (かつ) 情報が数字である(諸説あり)
     if((!element.includes(cleer[1])) && !(cleer[2] === void 0) && !(isNaN(cleer[2]))) {
       element.push(cleer[1]);
@@ -71,13 +85,13 @@ function getDataFromSheet() {
       diff_arr.push(timeDiff(cleer[0]));
     }
     if(result.length == lines){
-      var howManyLoop = i;
+      howManyLoop = i;
       break;
     }
   }
 
-  // console.log(element,result,diff_arr,howManyLoop);
-  return [element,result];
+  console.log(element,result,diff_arr,howManyLoop);
+  return [element,result,diff_arr];
 }
 
 //第2案・formからデータを取得(?/日)
@@ -88,6 +102,8 @@ function getDataFromForm() {
 
   var element = [];
   var result = [];
+  var diff_arr =[];
+  var howManyLoop;
 
   for(let i=1; i < formResponses.length; i++){
     var itemResponses = formResponses[formResponses.length - i].getItemResponses()
@@ -95,20 +111,19 @@ function getDataFromForm() {
     var vl = itemResponses[1].getResponse()
     if((!element.includes(cl)) && !(vl === void 0) && !(isNaN(vl))) {
       element.push(cl);
-      result.push(vl);
-      // diff_arr.push(timeDiff(ttemResponses));
+      result.push(parseInt(vl));
+      var form_time = formResponses[formResponses.length - i].getTimestamp();
+      diff_arr.push(timeDiff(form_time));
     }
     if(result.length == lines){
-      var howManyLoop = i;
+      howManyLoop = i;
       break;
     }
-
   }
 
-  // console.log(element,result,howManyLoop)
-  return [element,result];
+  console.log(element,result,diff_arr,howManyLoop)
+  return [element,result,diff_arr]
 }
-
 
 
 
@@ -126,16 +141,54 @@ function timeDiff (timeA){
   return(diff_minutes);
 }
 
+
 //配列変換
-function sortArrays(arrayA, arrayB) {
-    let combinedArray = arrayA.map((value, index) => {
-        return {a: value, b: arrayB[index]};
-    });
+function sortArrays(...arrays) {
+  if (!arrays || arrays.length === 0) {
+    return [];
+  }
+  
+  const firstArray = arrays[0]; 
+  if (!firstArray || !Array.isArray(firstArray) || firstArray.length === 0) {
+    return arrays.map(() => []);
+  }
 
-    combinedArray.sort((a, b) => a.a.localeCompare(b.a));
+  const numElements = firstArray.length;
+  const numArrays = arrays.length;
 
-    arrayA = combinedArray.map(obj => obj.a);
-    arrayB = combinedArray.map(obj => obj.b);
+  for (let i = 1; i < numArrays; i++) {
+    if (!arrays[i] || !Array.isArray(arrays[i]) || arrays[i].length !== numElements) {
+      console.error("ソート対象のすべての配列は同じ長さで、かつ有効な配列である必要があります。");
+      return arrays.map(() => []); 
+    }
+  }
 
-    return [arrayA, arrayB];
+  let combined = [];
+  for (let i = 0; i < numElements; i++) {
+    const group = [];
+    for (let j = 0; j < numArrays; j++) {
+      group.push(arrays[j][i]);
+    }
+    combined.push(group);
+  }
+
+  combined.sort((groupA, groupB) => {
+    const valA = groupA[0];
+    const valB = groupB[0];
+
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      return valA.localeCompare(valB);
+    } else if (typeof valA === 'number' && typeof valB === 'number') {
+      return valA - valB;
+    }
+
+    return String(valA).localeCompare(String(valB));
+  });
+
+  const resultArrays = [];
+  for (let j = 0; j < numArrays; j++) {
+    resultArrays.push(combined.map(group => group[j]));
+  }
+
+  return resultArrays;
 }
