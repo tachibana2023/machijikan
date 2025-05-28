@@ -16,179 +16,162 @@ const lines = 18;
 function doGet(e) {
 
   var value;
+  let rawElement, rawResult, rawDiffArr;
 
-  try{
+  try {
     //第一段階
-    var [element,result,diff_arr] = getDataFromSheet();
-  }catch(e){
-    try{
+    [rawElement, rawResult, rawDiffArr] = getDataFromSheet();
+  } catch (error1) {
+    console.log('getDataFromSheetでエラー: ' + error1.message);
+    try {
       //第二段階
-      var [element,result,diff_arr] = getDataFromForm();
-    }catch(e){
-      console.log('シート取得関数にエラー・回数オーバーか？：' + e.message);
-      value = "ERROR";
+      [rawElement, rawResult, rawDiffArr] = getDataFromForm();
+    } catch (error2) {
+      console.log('getDataFromFormでもエラー: ' + error2.message);
+      value = "ERROR_FETCHING_DATA";
     }
   }
 
-  if (value !== "ERROR") { 
-    const sortedArraysResult = sortArrays(element, result, diff_arr);
+  if (value !== "ERROR_FETCHING_DATA" && rawElement && rawResult && rawDiffArr) {
+    const htmlDisplayOrder = [
+      "1-A", "1-B", "1-C", "1-D", "1-E", "1-F", "1-G", "1-H", "1-I",
+      "2-A", "2-B", "2-C", "2-D", "2-E", "2-F", "2-G", "2-H", "2-I"
+    ];
 
-    if (sortedArraysResult && sortedArraysResult.length === 3 &&
-        Array.isArray(sortedArraysResult[0]) && // 各要素が配列であることも確認
-        Array.isArray(sortedArraysResult[1]) &&
-        Array.isArray(sortedArraysResult[2])) {
-      value = {
-        "element": sortedArraysResult[0],
-        "result": sortedArraysResult[1],
-        "diff_arr": sortedArraysResult[2] 
-      };
-    } else {
-      console.log('ソート処理でエラー、または期待される配列構造ではありません。');
-      value = "ERROR_SORTING";
+    // 取得したデータをクラス名をキーにしたMapに変換
+    const dataMap = new Map();
+    for (let i = 0; i < rawElement.length; i++) {
+      // 重複するクラス名があった場合、新しいデータで上書き
+      dataMap.set(rawElement[i], {
+        result: rawResult[i],
+        diff: rawDiffArr[i]
+      });
     }
+
+    const finalElementArray = [];
+    const finalResultArray = [];
+    const finalDiffArray = [];
+
+    for (const className of htmlDisplayOrder) {
+      finalElementArray.push(className);
+      if (dataMap.has(className)) {
+        const data = dataMap.get(className);
+        finalResultArray.push(data.result);
+        finalDiffArray.push(data.diff);
+      } else {
+        // データが存在しないクラスには空文字を設定
+        finalResultArray.push("");
+        finalDiffArray.push("");
+      }
+    }
+    
+    value = {
+      "element": finalElementArray,
+      "result": finalResultArray,
+      "diff_arr": finalDiffArray
+    };
+
+  } else if (!value) {
+    console.log('データ取得に成功しましたが、配列が期待通りではありません。');
+    value = "ERROR_INVALID_DATA_STRUCTURE";
   }
 
   var result_json = {
     message: value
-  }
+  };
 
   var out = ContentService.createTextOutput();
   out.setMimeType(ContentService.MimeType.JSON);
   out.setContent(JSON.stringify(result_json));
 
+  console.log(out.getContent())
   return out;
 }
 
-
-
-//第1案・シートから取得)(50000/日？)
+//第1案・シートから取得(50000/日？)
 function getDataFromSheet() {
-  const sheetId = '＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊';         //ここ変えるよね//
+  console.log("第1案の実行開始")
+  const sheetId = '**********'; //ここ変えるよね//
   const sheet = SpreadsheetApp.openById(sheetId);
   const range = sheet.getDataRange();
-
-  //配列形式で入ってる...と思う
-  const allDatas = range.getValues();
+  const allDatas = range.getValues(); // [[timestamp, element, result], ...]
 
   var element = [];
   var result = [];
-  var diff_arr =[];
-  var howManyLoop;
+  var diff_arr = [];
+  var uniqueElements = new Set(); // 既に追加したelementを記録
 
-  for(let i=1; i < allDatas.length; i++){
-    var div_Data = allDatas[allDatas.length-i];
-    var cleer = div_Data.filter(Boolean);
-    //element(既出のもの)の情報ではない (かつ) 情報がundefinedではない (かつ) 情報が数字である(諸説あり)
-    if((!element.includes(cleer[1])) && !(cleer[2] === void 0) && !(isNaN(cleer[2]))) {
-      element.push(cleer[1]);
-      result.push(cleer[2]);
-      diff_arr.push(timeDiff(cleer[0]));
-    }
-    if(result.length == lines){
-      howManyLoop = i;
+  // 新しいデータから処理するため、配列の後ろからループ
+  for (let i = allDatas.length - 1; i >= 1; i--) { // i >= 0 かつヘッダー行をスキップする場合は i >= 1
+    if (result.length >= lines) {
       break;
     }
-  }
+    var div_Data = allDatas[i];
+  
+    const timestamp = div_Data[0];
+    const el = div_Data[1];
+    const val = div_Data[2];
 
-  console.log(element,result,diff_arr,howManyLoop);
-  return [element,result,diff_arr];
+    // element(既出のもの)の情報ではない (かつ) resultがundefinedではない (かつ) resultが数字である(または数字に変換可能)
+    // 空文字のelも有効なデータとして扱うか要検討。ここでは空文字でないことを前提とする。
+    if (el && !uniqueElements.has(el) && val !== undefined && val !== null && !isNaN(parseFloat(String(val).replace(/[^0-9.-]+/g,"")))) {
+      element.push(el);
+      result.push(parseFloat(String(val).replace(/[^0-9.-]+/g,""))); // 数値に変換して格納
+      diff_arr.push(timeDiff(timestamp));
+      uniqueElements.add(el);
+    }
+  }
+  
+  // console.log(element,result,diff_arr);
+  return [element.reverse(), result.reverse(), diff_arr.reverse()];
 }
 
 //第2案・formからデータを取得(?/日)
 function getDataFromForm() {
-  var formId = '＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊'           //ここ変えましょう//
-  var form = FormApp.openById(formId)
-  var formResponses = form.getResponses()
+  console.log("第2案の実行開始")
+  var formId = '**********'; //ここ変えましょう//
+  var form = FormApp.openById(formId);
+  var formResponses = form.getResponses();
 
   var element = [];
   var result = [];
-  var diff_arr =[];
-  var howManyLoop;
+  var diff_arr = [];
+  var uniqueElements = new Set();
 
-  for(let i=1; i < formResponses.length; i++){
-    var itemResponses = formResponses[formResponses.length - i].getItemResponses()
-    var cl = itemResponses[0].getResponse()
-    var vl = itemResponses[1].getResponse()
-    if((!element.includes(cl)) && !(vl === void 0) && !(isNaN(vl))) {
-      element.push(cl);
-      result.push(parseInt(vl));
-      var form_time = formResponses[formResponses.length - i].getTimestamp();
-      diff_arr.push(timeDiff(form_time));
-    }
-    if(result.length == lines){
-      howManyLoop = i;
+  // 新しい回答から処理
+  for (let i = formResponses.length - 1; i >= 0; i--) {
+    if (result.length >= lines) {
       break;
+    }
+    var formResponse = formResponses[i];
+    var itemResponses = formResponse.getItemResponses();
+
+    if (itemResponses.length < 2) continue; // 必要な回答項目がない場合はスキップ
+
+    var cl = itemResponses[0].getResponse();
+    var vl = itemResponses[1].getResponse();
+
+    if (cl && !uniqueElements.has(cl) && vl !== null && vl !== undefined && !isNaN(parseFloat(String(vl)))) {
+      element.push(cl);
+      result.push(parseFloat(String(vl))); // 数値として格納
+      var form_time = formResponse.getTimestamp();
+      diff_arr.push(timeDiff(form_time));
+      uniqueElements.add(cl);
     }
   }
 
-  console.log(element,result,diff_arr,howManyLoop)
-  return [element,result,diff_arr]
+  // console.log(element,result,diff_arr);
+  return [element, result, diff_arr];
 }
-
 
 
 //時間差取得関数
 function timeDiff (timeA){
   // ミリ秒に変換して差を取る
   var time_a = new Date(timeA).getTime();
-  var now_date = new Date(); 
+  var now_date = new Date().getTime();
   const diff = Math.abs(now_date - time_a);
-
-  // 四捨五入して計算/単位は分
-  var diff_minutes = diff / 1000 / 60;
-  diff_minutes = Math.round(diff_minutes * 10)/10
-
-  return(diff_minutes);
-}
-
-
-//配列変換
-function sortArrays(...arrays) {
-  if (!arrays || arrays.length === 0) {
-    return [];
-  }
-  
-  const firstArray = arrays[0]; 
-  if (!firstArray || !Array.isArray(firstArray) || firstArray.length === 0) {
-    return arrays.map(() => []);
-  }
-
-  const numElements = firstArray.length;
-  const numArrays = arrays.length;
-
-  for (let i = 1; i < numArrays; i++) {
-    if (!arrays[i] || !Array.isArray(arrays[i]) || arrays[i].length !== numElements) {
-      console.error("ソート対象のすべての配列は同じ長さで、かつ有効な配列である必要があります。");
-      return arrays.map(() => []); 
-    }
-  }
-
-  let combined = [];
-  for (let i = 0; i < numElements; i++) {
-    const group = [];
-    for (let j = 0; j < numArrays; j++) {
-      group.push(arrays[j][i]);
-    }
-    combined.push(group);
-  }
-
-  combined.sort((groupA, groupB) => {
-    const valA = groupA[0];
-    const valB = groupB[0];
-
-    if (typeof valA === 'string' && typeof valB === 'string') {
-      return valA.localeCompare(valB);
-    } else if (typeof valA === 'number' && typeof valB === 'number') {
-      return valA - valB;
-    }
-
-    return String(valA).localeCompare(String(valB));
-  });
-
-  const resultArrays = [];
-  for (let j = 0; j < numArrays; j++) {
-    resultArrays.push(combined.map(group => group[j]));
-  }
-
-  return resultArrays;
+  var diff_minutes = diff / (1000 * 60);
+  diff_minutes = Math.round(diff_minutes * 10) / 10;
+  return diff_minutes;
 }
