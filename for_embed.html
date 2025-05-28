@@ -206,7 +206,12 @@
 <script>
     // ここはJSで書かれています。
     // 下のURLのみ変更してそれ以外はいじらないでね〜〜
-    let url = "https://script.google.com/macros/s/******"; // デプロイ結果のURL
+    const url = "https://script.google.com/macros/s/**********/exec"; // デプロイ結果のURL
+
+    // データがない際に「待ち時間」に表示する文字列
+    const NoData_time = "--"
+    // データがない際に「最終更新」に表示する文字列
+    const NoData_diff = "データなし"
 
     // <------以下変更禁止------>>
     let table = document.getElementById("apiTable");
@@ -245,10 +250,12 @@
             let rows = table.rows;
             for (let i = 0; i < results2.length; i++) {
                 let lastCell = rows[i + 1].cells[4];
-                lastCell.textContent = results2[i] + "分";
+                let waitTime = results2[i] == "" ? NoData_time : results2[i] + "分";
+                lastCell.textContent = waitTime;
 
                 let diffCell = rows[i + 1].cells[5];
-                diffCell.textContent = diffs[i] + "分前";
+                let lastUpdate = diffs[i] == "" ? NoData_diff : diffs[i] + "分前";
+                diffCell.textContent = lastUpdate;
             }
             success()
         }
@@ -267,10 +274,12 @@
                 let rows = table.rows;
                 for (let i = 0; i < results.length; i++) {
                     let lastCell = rows[i + 1].cells[4];
-                    lastCell.textContent = results[i] + "分";
+                    let waitTime = results[i] == "" ? NoData_time : results[i] + "分";
+                    lastCell.textContent = waitTime;
 
                     let diffCell = rows[i + 1].cells[5];
-                    diffCell.textContent = diffs[i] + "分前";
+                    let lastUpdate = diffs[i] == "" ? NoData_diff : diffs[i] + "分前";
+                    diffCell.textContent = lastUpdate;
                 }
                 success()
             })
